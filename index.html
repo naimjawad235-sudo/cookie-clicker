@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cookie Clicker</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root { --key1:#FF4D2E; --key2:#1F3BFF; --bg:#F4F1EA; --ink:#1A1A1E; --panel:#FFFFFF; --tint:#1a1a1e0d; --line:#1a1a1e1f; --field:#1a1a1e0a; --milk:#fffdf6; }
+  body.dark { --bg:#0B0B0D; --ink:#F4F1EA; --panel:#1A1A1E; --tint:#f4f1ea14; --line:#f4f1ea26; --field:#f4f1ea0f; }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; overflow:hidden; position:relative; display:flex; align-items:center; justify-content:center;
+    background:var(--bg); color:var(--ink); font-family:'Space Grotesk',sans-serif; transition:background .3s, color .3s; }
+  button, input { font-family:inherit; }
+  [hidden] { display:none !important; }
+
+  /* top bar */
+  .topbar { position:fixed; top:24px; right:24px; z-index:3; display:flex; flex-direction:column; align-items:flex-end; gap:10px; max-width:calc(100% - 48px); }
+  .counter { display:flex; align-items:baseline; gap:8px; padding:12px 22px; border-radius:999px; background:var(--key1); color:#fff; }
+  .num { font-weight:700; font-size:32px; line-height:1; font-variant-numeric:tabular-nums; }
+  .label { font-size:14px; text-transform:uppercase; letter-spacing:.15em; opacity:.85; }
+  .rate { font-size:14px; opacity:.6; }
+  .frenzy { font-weight:700; font-size:14px; padding:4px 12px; border-radius:999px; background:#f2c230; color:#3a2a00; }
+  .chips { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:6px; }
+  .chip-boost { font-weight:700; font-size:13px; padding:4px 12px; border-radius:999px; background:var(--key2); color:#fff; }
+  .chip-sleep { display:inline-flex; align-items:center; gap:8px; font-weight:700; font-size:13px; padding:4px 6px 4px 12px; border-radius:999px; background:var(--ink); color:var(--bg); }
+  .wake { border:none; cursor:pointer; border-radius:999px; padding:4px 10px; background:#f2c230; color:#3a2a00; font:700 12px 'Space Grotesk',sans-serif; }
+  .actions { display:flex; flex-wrap:wrap; justify-content:flex-end; align-items:center; gap:8px 12px; }
+  .btn { border:none; cursor:pointer; border-radius:999px; padding:8px 18px; background:var(--ink); color:var(--bg); font:700 14px 'Space Grotesk',sans-serif; }
+  .btn:hover { opacity:.9; }
+  .btn:disabled { opacity:.4; cursor:not-allowed; }
+  .btn.primary { background:var(--key1); color:#fff; }
+  .btn.blue { background:var(--key2); color:#fff; }
+  .switch { display:inline-flex; align-items:center; gap:10px; border:none; background:none; padding:0; cursor:pointer; font:700 14px 'Space Grotesk',sans-serif; color:inherit; }
+  .switch:focus-visible { outline:3px solid var(--key2); outline-offset:4px; border-radius:999px; }
+  .track { display:flex; align-items:center; width:54px; height:30px; padding:3px; border-radius:999px; background:#8a8a8f66; transition:background .2s; }
+  .switch.on .track { background:var(--key1); }
+  .thumb { width:24px; height:24px; border-radius:50%; background:#fff; box-shadow:0 2px 6px #0b0b0d4d; transition:transform .2s; }
+  .switch.on .thumb { transform:translateX(24px); }
+  .userRow { display:flex; align-items:center; gap:10px; font-size:14px; }
+  .userName { font-weight:700; display:flex; gap:6px; align-items:center; }
+  .adminTag { font-size:10px; letter-spacing:.1em; padding:3px 7px; border-radius:999px; background:var(--key2); color:#fff; }
+  .link { border:none; background:none; cursor:pointer; text-decoration:underline; opacity:.65; font:inherit; color:inherit; }
+  .link:hover { opacity:1; }
+
+  /* upgrades shelf */
+  .shelf { position:absolute; top:24px; left:24px; bottom:24px; width:260px; display:flex; flex-direction:column; gap:10px; overflow-y:auto; z-index:1; }
+  .shelf-title { font-weight:700; font-size:13px; text-transform:uppercase; letter-spacing:.15em; opacity:.55; }
+  .srow { padding:10px 12px; border-radius:16px; background:var(--tint); border:1px solid var(--line); animation:slide .4s ease; }
+  .shead { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px; }
+  .sname { font-weight:700; font-size:14px; }
+  .scount { font-size:13px; font-weight:700; opacity:.6; font-variant-numeric:tabular-nums; }
+  .tokens { display:flex; flex-wrap:wrap; gap:4px; align-items:center; }
+  .tok { width:18px; height:18px; border-radius:50%; display:grid; place-items:center; font-size:10px; font-weight:700; color:#fff; animation:bob 1.6s ease-in-out infinite; }
+  .tok.click { background:var(--key1); }
+  .tok.auto { background:var(--key2); }
+  .more { font-size:12px; font-weight:700; opacity:.6; }
+
+  /* cookie */
+  .wrap { position:relative; z-index:1; width:260px; height:260px; }
+  .cookie { position:relative; width:100%; height:100%; border:none; padding:0; cursor:pointer; border-radius:50%;
+    background:radial-gradient(circle at 35% 30%,#e8b46a,#c98a3d 60%,#a8692a);
+    box-shadow:inset -10px -14px 0 #8f5a2366, 0 18px 40px #0b0b0d33; transition:transform .15s; }
+  .cookie:hover { transform:scale(1.05); }
+  .cookie:focus-visible { outline:3px solid var(--key2); outline-offset:6px; }
+  .chip { position:absolute; border-radius:40% 55% 45% 60%; background:#4a2a12; box-shadow:inset 2px 2px 0 #6b3d1c; pointer-events:none; }
+  .skin-chocolate .cookie { background:radial-gradient(circle at 35% 30%,#8a5530,#5e3519 60%,#3f220f); box-shadow:inset -10px -14px 0 #2a160866, 0 18px 40px #0b0b0d33; }
+  .skin-chocolate .chip { background:#f3e6d3; box-shadow:inset 2px 2px 0 #fff; }
+  .skin-redvelvet .cookie { background:radial-gradient(circle at 35% 30%,#d4565a,#a8262e 60%,#7d1820); box-shadow:inset -10px -14px 0 #4d0d1266, 0 18px 40px #0b0b0d33; }
+  .skin-redvelvet .chip { background:#fff8ef; box-shadow:inset 2px 2px 0 #fff; }
+  .skin-golden .cookie { background:radial-gradient(circle at 35% 30%,#fff3a6,#f2c230 55%,#c48d0c); box-shadow:inset -10px -14px 0 #8a610066, 0 0 40px #f2c23099, 0 18px 40px #0b0b0d33; }
+  .skin-golden .chip { background:#b07a05; box-shadow:inset 2px 2px 0 #e0a91e; }
+  .golden { position:fixed; z-index:4; width:76px; height:76px; }
+  .rain { position:fixed; top:-60px; z-index:4; width:46px; height:46px; border-radius:40% 55% 45% 60%;
+    background:radial-gradient(circle at 35% 30%,#e8b46a,#a8692a); box-shadow:inset -4px -6px 0 #8f5a2366; cursor:pointer; }
+  .crumb { position:absolute; left:50%; top:50%; border-radius:40% 55% 45% 60%; background:#c98a3d; pointer-events:none; }
+  .plus { position:absolute; left:50%; top:20%; transform:translateX(-50%); font-weight:700; font-size:44px; color:var(--key1); pointer-events:none; white-space:nowrap; }
+  .milk { position:fixed; left:0; right:0; bottom:0; z-index:0; height:0; background:linear-gradient(180deg,#fffdf6d9,#f3ead6d9);
+    border-top:6px solid var(--milk); border-radius:50% 50% 0 0 / 18px 18px 0 0; transition:height 1s ease; pointer-events:none; }
+  body.dark .milk { background:linear-gradient(180deg,#3a3a40d9,#26262bd9); border-top-color:#4a4a52; }
+  .milk-label { position:fixed; left:50%; bottom:10px; transform:translateX(-50%); z-index:1; font-size:12px; font-weight:700; color:#6b5a3a; white-space:nowrap; }
+  body.dark .milk-label { color:#d8c9a6; }
+  .combo { position:fixed; left:50%; top:calc(50% + 150px); transform:translateX(-50%); z-index:1; width:220px; display:flex; flex-direction:column; align-items:center; gap:6px; }
+  .combo-text { font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:16px; color:var(--key1); }
+  .combo-bar { width:100%; height:8px; border-radius:999px; overflow:hidden; background:var(--line); }
+  .combo-fill { display:block; height:100%; border-radius:999px; background:linear-gradient(90deg,var(--key1),#f2c230); transition:width .15s; }
+
+  /* toasts */
+  .toasts { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); display:flex; flex-direction:column; align-items:center; gap:8px; z-index:6; pointer-events:none; }
+  .toast { display:flex; flex-direction:column; align-items:center; padding:12px 22px; border-radius:16px; background:var(--ink); color:var(--bg); box-shadow:0 12px 30px #0b0b0d40; white-space:nowrap; animation:toastIn .3s ease; }
+  .toast b { font-size:16px; }
+  .toast span { font-size:13px; opacity:.75; }
+
+  /* login */
+  .auth { position:fixed; inset:0; z-index:10; display:grid; place-items:center; padding:24px; background:var(--bg); }
+  .auth-card { width:min(380px,100%); display:flex; flex-direction:column; gap:14px; padding:28px 24px; border-radius:28px; background:var(--panel); color:var(--ink); box-shadow:0 24px 60px #0b0b0d2e; }
+  .auth-title { font-weight:700; font-size:24px; text-align:center; }
+  .field { display:flex; flex-direction:column; gap:6px; font-size:13px; font-weight:700; }
+  .field span { opacity:.7; }
+  .field input { width:100%; padding:12px 14px; border-radius:14px; border:1px solid var(--line); background:var(--field); color:inherit; font:inherit; font-size:16px; outline:none; }
+  .field input:focus { border-color:var(--key1); }
+  .auth-err { min-height:18px; font-size:13px; font-weight:700; color:var(--key1); }
+
+  /* upgrades panel */
+  .veil { position:fixed; inset:0; background:#0b0b0d59; z-index:4; opacity:0; pointer-events:none; transition:opacity .3s; }
+  .veil.open { opacity:1; pointer-events:auto; }
+  .panel { position:fixed; top:0; right:0; bottom:0; z-index:5; width:min(400px,94vw); background:var(--panel); color:var(--ink); padding:24px 20px;
+    display:flex; flex-direction:column; gap:14px; box-shadow:-20px 0 50px #0b0b0d33; transform:translateX(100%); transition:transform .35s cubic-bezier(.2,.8,.2,1); }
+  .panel.open { transform:translateX(0); }
+  .ph { display:flex; justify-content:space-between; align-items:center; }
+  .ptitle { font-weight:700; font-size:28px; }
+  .close { border:none; background:none; font-size:32px; line-height:1; cursor:pointer; opacity:.6; color:inherit; }
+  .close:hover { opacity:1; }
+  .ppoints { font-weight:700; color:var(--key1); font-variant-numeric:tabular-nums; }
+  .tabs { display:flex; flex-wrap:wrap; gap:4px; padding:4px; border-radius:22px; background:var(--tint); }
+  .tabs.small .tab { padding:5px 8px; font-size:12px; }
+  .tab { flex:1 1 auto; border:none; background:none; color:inherit; cursor:pointer; border-radius:999px; padding:8px 10px; font:700 13px 'Space Grotesk',sans-serif; opacity:.6; }
+  .tab:hover { opacity:1; }
+  .tab.active { background:var(--key1); color:#fff; opacity:1; }
+  .cards { flex:1; display:flex; flex-direction:column; gap:10px; overflow-y:auto; padding-right:4px; }
+  .ucard { display:flex; align-items:center; gap:12px; padding:12px 12px 12px 14px; border-radius:20px; border:1px solid var(--line); background:var(--tint); }
+  .ucard.ok { border-color:var(--key1); box-shadow:0 6px 18px #ff4d2e1f; }
+  .badge { flex:none; min-width:40px; height:40px; padding:0 8px; display:grid; place-items:center; border-radius:14px; background:var(--line); font-weight:700; font-size:18px; font-variant-numeric:tabular-nums; }
+  .ubody { flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+  .uname { font-weight:700; font-size:16px; }
+  .udesc { font-size:12px; opacity:.65; line-height:1.3; }
+  .buy { flex:none; display:flex; flex-direction:column; align-items:center; gap:2px; min-width:92px; padding:8px 14px; border-radius:14px; border:none; cursor:pointer; background:var(--key1); color:#fff; transition:transform .15s; }
+  .buy:hover:not(:disabled) { transform:scale(1.06); }
+  .buy:active:not(:disabled) { transform:scale(.9); }
+  .buy:disabled { cursor:not-allowed; background:var(--line); color:var(--ink); opacity:.5; }
+  .act { font-weight:700; font-size:14px; line-height:1; }
+  .price { font-size:11px; line-height:1.2; white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .skin-row { display:flex; align-items:center; gap:12px; }
+  .skin-row .ucard { flex:1; min-width:0; }
+  .mini { width:52px; height:52px; flex:none; }
+  .mini .cookie { pointer-events:none; }
+  .mini .cookie:hover { transform:none; }
+  .award { display:flex; gap:12px; align-items:center; padding:12px 14px; border-radius:16px; border:1px solid var(--line); opacity:.5; }
+  .award.on { opacity:1; border-color:#f2c230; }
+  .aicon { flex:none; width:36px; height:36px; border-radius:50%; display:grid; place-items:center; font-weight:700; background:var(--line); }
+  .award.on .aicon { background:#f2c230; color:#3a2a00; }
+  .abody { display:flex; flex-direction:column; }
+  .aname { font-weight:700; font-size:15px; }
+  .atext { font-size:13px; opacity:.7; }
+  .stats { margin:0; display:flex; flex-direction:column; }
+  .srow2 { display:flex; justify-content:space-between; gap:12px; padding:10px 2px; border-bottom:1px solid var(--line); font-size:14px; }
+  .srow2 dt { opacity:.7; }
+  .srow2 dd { margin:0; font-weight:700; font-variant-numeric:tabular-nums; }
+  .board { display:flex; flex-direction:column; gap:8px; }
+  .brow { display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:14px; background:var(--tint); border:1px solid transparent; }
+  .brow.me { border-color:var(--key1); }
+  .brank { flex:none; width:30px; height:30px; border-radius:50%; display:grid; place-items:center; font-weight:700; font-size:14px; background:var(--line); }
+  .r1 .brank { background:#f2c230; color:#3a2a00; }
+  .r2 .brank { background:#c9ccd3; color:#1a1a1e; }
+  .r3 .brank { background:#d08a4c; color:#fff; }
+  .bname { flex:1; min-width:0; display:flex; align-items:center; gap:6px; font-weight:700; font-size:15px; }
+  .bpts { font-weight:700; font-variant-numeric:tabular-nums; color:var(--key1); }
+  .box { display:flex; align-items:baseline; gap:10px; padding:14px; border-radius:16px; background:var(--tint); font-size:14px; }
+  .big { font-weight:700; font-size:36px; color:#f2c230; }
+  .gain { font-weight:700; font-size:18px; }
+  .note { font-size:13px; opacity:.7; line-height:1.4; }
+  .ahead { margin-top:6px; font-weight:700; font-size:13px; text-transform:uppercase; letter-spacing:.12em; opacity:.6; }
+  .abtns { display:flex; flex-wrap:wrap; gap:8px; }
+  .amt { width:100%; padding:10px 12px; border-radius:12px; border:1px solid var(--line); background:var(--field); color:inherit; font:inherit; font-size:15px; }
+  .prow { display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:12px; background:var(--tint); }
+  .pname { flex:1; min-width:0; display:flex; flex-direction:column; font-weight:700; font-size:14px; }
+  .ppts { font-weight:400; font-size:12px; opacity:.6; }
+  .pbtn { border:1px solid var(--line); background:none; color:inherit; cursor:pointer; border-radius:10px; padding:6px 10px; font:700 12px 'Space Grotesk',sans-serif; }
+  .pbtn:hover { border-color:var(--key2); }
+  .pbtn.danger:hover { border-color:var(--key1); color:var(--key1); }
+  .empty { font-size:13px; opacity:.6; }
+
+  @keyframes slide { from { opacity:0; transform:translateX(-30px); } to { opacity:1; transform:none; } }
+  @keyframes bob { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-3px); } }
+  @keyframes toastIn { from { opacity:0; transform:translateY(20px) scale(.9); } to { opacity:1; transform:none; } }
+
+  /* phones */
+  @media (max-width:640px) {
+    .topbar { top:12px; left:12px; right:12px; max-width:none; align-items:center; gap:8px; }
+    .counter { padding:10px 18px; }
+    .num { font-size:28px; }
+    .chips, .userRow { justify-content:center; }
+    .actions { justify-content:center; width:100%; }
+    .actions > :first-child { flex-basis:100%; display:flex; justify-content:center; }
+    .wrap { width:200px; height:200px; margin-top:150px; }
+    .combo { top:calc(50% + 190px); }
+    .shelf { top:auto; left:12px; right:12px; bottom:12px; width:auto; max-height:26vh; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="milk" id="milk" hidden></div>
+  <span class="milk-label" id="milkLabel" hidden></span>
+
+  <!-- top bar -->
+  <div class="topbar">
+    <div class="counter" aria-live="polite"><span class="num" id="num">0</span><span class="label">points</span></div>
+    <div class="rate" id="rate"></div>
+    <div class="frenzy" id="frenzy" hidden></div>
+    <div class="chips" id="chips"></div>
+    <div class="actions">
+      <button class="switch on" id="sound" role="switch" aria-checked="true" aria-label="Sound">
+        <span id="soundText">Sound on</span><span class="track"><span class="thumb"></span></span>
+      </button>
+      <button class="switch" id="dark" role="switch" aria-checked="false" aria-label="Dark mode">
+        <span id="darkText">Light</span><span class="track"><span class="thumb"></span></span>
+      </button>
+      <button class="btn primary" id="shopBtn">Upgrades</button>
+      <button class="btn blue" id="boardBtn">Leaderboard</button>
+    </div>
+    <div class="userRow" id="userRow" hidden>
+      <span class="userName"><span id="userName"></span><span class="adminTag" id="adminTag" hidden>ADMIN</span></span>
+      <button class="link" id="logout">Log out</button>
+    </div>
+  </div>
+
+  <!-- upgrades shelf -->
+  <div class="shelf" id="shelf"></div>
+
+  <!-- cookie -->
+  <div class="wrap" id="wrap">
+    <button class="cookie" id="cookie" aria-label="Add points"></button>
+  </div>
+
+  <div class="combo" id="combo" hidden>
+    <span class="combo-text" id="comboText"></span>
+    <span class="combo-bar"><span class="combo-fill" id="comboFill"></span></span>
+  </div>
+
+  <div class="toasts" id="toasts"></div>
+
+  <!-- login -->
+  <div class="auth" id="auth">
+    <div class="auth-card">
+      <div class="auth-title" id="authTitle">Welcome back</div>
+      <div class="tabs" id="authTabs">
+        <button class="tab active" data-mode="login">Log in</button>
+        <button class="tab" data-mode="signup">Sign up</button>
+      </div>
+      <label class="field"><span>Username</span><input id="aUser" autocomplete="username" placeholder="cookie_master"></label>
+      <label class="field"><span>Password</span><input id="aPw" type="password" autocomplete="current-password"></label>
+      <label class="field" id="aPw2Wrap" hidden><span>Repeat password</span><input id="aPw2" type="password" autocomplete="new-password"></label>
+      <div class="auth-err" id="aErr"></div>
+      <button class="btn primary" id="aGo">Log in</button>
+    </div>
+  </div>
+
+  <!-- upgrades panel -->
+  <div class="veil" id="veil"></div>
+  <aside class="panel" id="panel" aria-label="Upgrades">
+    <div class="ph"><span class="ptitle">Upgrades</span><button class="close" id="closePanel" aria-label="Close">&times;</button></div>
+    <div class="ppoints" id="ppoints"></div>
+    <div id="panelBody" style="display:contents"></div>
+  </aside>
+
+<script>
+(() => {
+  // ---------- settings ----------
+  const KEY_USERS = 'cookie-clicker-users-v1';
+  const KEY_SESSION = 'cookie-clicker-session-v1';
+  const ADMIN = 'adminn4';
+  const ADMIN_HASH = '1f37d0087bd43d24dc30e7c0f72be905640d0750e516848a6bd46ee092c49e69';
+  const LABEL = 'points';
+  const GROWTH = 0.15;
+
+  const UPGRADES = [
+    { name: 'Bigger Bite',    description: '+1 point per click',                    amount: 1,      cost: 50,       kind: 'click' },
+    { name: 'Sugar Rush',     description: '+5 points per click',                   amount: 5,      cost: 1000,     kind: 'click' },
+    { name: 'Grandma',        description: 'Bakes 1 point per second',              amount: 1,      cost: 5000,     kind: 'auto' },
+    { name: 'Bakery',         description: 'Bakes 20 points per second',            amount: 20,     cost: 50000,    kind: 'auto' },
+    { name: 'Auto Clicker',   description: 'Clicks for you: 500 points per second', amount: 500,    cost: 200000,   kind: 'auto' },
+    { name: 'Golden Oven',    description: '+1,000 points per click',               amount: 1000,   cost: 500000,   kind: 'click' },
+    { name: 'Cookie Factory', description: 'Bakes 5,000 points per second',         amount: 5000,   cost: 1000000,  kind: 'auto' },
+    { name: 'Cookie Planet',  description: 'Bakes 100,000 points per second',       amount: 100000, cost: 25000000, kind: 'auto' }
+  ];
+  const SKINS = [
+    { id: 'classic',   name: 'Classic',          description: 'The original chocolate chip', cost: 0 },
+    { id: 'chocolate', name: 'Double Chocolate', description: 'Dark dough, white chips',     cost: 10000 },
+    { id: 'redvelvet', name: 'Red Velvet',       description: 'Red dough, cream chips',      cost: 250000 },
+    { id: 'golden',    name: 'Pure Gold',        description: 'A glowing golden cookie',     cost: 5000000 }
+  ];
+  const BOOSTS = [
+    { id: 'clickx2', name: 'Double Clicks',  description: 'Every click gives x2',   seconds: 60, cost: 2000 },
+    { id: 'autox2',  name: 'Double Bakers',  description: 'Points per second x2',   seconds: 60, cost: 10000 },
+    { id: 'storm',   name: 'Cookie Storm',   description: 'Every click gives x5',   seconds: 20, cost: 25000 }
+  ];
+  const ACH = [
+    { id: 'c1',     name: 'First Bite',       text: 'Click the cookie once',           test: g => g.stats.clicks >= 1 },
+    { id: 'c100',   name: 'Clicker',          text: 'Click 100 times',                 test: g => g.stats.clicks >= 100 },
+    { id: 'c1000',  name: 'Clicking Machine', text: 'Click 1,000 times',               test: g => g.stats.clicks >= 1000 },
+    { id: 'b1k',    name: 'Baker',            text: 'Bake 1,000 points in total',      test: g => g.stats.baked >= 1000 },
+    { id: 'b100k',  name: 'Master Baker',     text: 'Bake 100,000 points',             test: g => g.stats.baked >= 100000 },
+    { id: 'b1m',    name: 'Millionaire',      text: 'Bake 1,000,000 points',           test: g => g.stats.baked >= 1000000 },
+    { id: 'b100m',  name: 'Cookie Tycoon',    text: 'Bake 100,000,000 points',         test: g => g.stats.baked >= 100000000 },
+    { id: 'u1',     name: 'Shopper',          text: 'Buy your first upgrade',          test: g => g.owned.some(n => n > 0) },
+    { id: 'u50',    name: 'Collector',        text: 'Own 50 upgrades',                 test: g => g.owned.reduce((a, b) => a + b, 0) >= 50 },
+    { id: 'auto',   name: 'Hands Free',       text: 'Buy the Auto Clicker',            test: (g, h) => h.has('Auto Clicker') },
+    { id: 'ps1k',   name: 'Bakery Boss',      text: 'Reach 1,000 points per second',   test: (g, h) => h.perSec >= 1000 },
+    { id: 'gold1',  name: 'Lucky Find',       text: 'Catch a golden cookie',           test: g => g.stats.golden >= 1 },
+    { id: 'gold10', name: 'Gold Rush',        text: 'Catch 10 golden cookies',         test: g => g.stats.golden >= 10 },
+    { id: 'skin',   name: 'Fashion Cookie',   text: 'Unlock a new skin',               test: g => g.skins.length > 1 }
+  ];
+  const CHIPS = [[28,30,9],[62,24,7],[45,50,10],[72,58,8],[30,70,8],[55,78,6],[20,48,5]];
+
+  // ---------- helpers ----------
+  const $ = id => document.getElementById(id);
+  const fmt = n => Math.floor(n).toLocaleString('en-US');
+  const fmtTime = s => { s = Math.floor(s); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return (h ? h + 'h ' : '') + m + 'm ' + x + 's'; };
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const readUsers = () => { try { return JSON.parse(localStorage.getItem(KEY_USERS) || '{}') || {}; } catch (e) { return {}; } };
+  const writeUsers = u => { try { localStorage.setItem(KEY_USERS, JSON.stringify(u)); } catch (e) {} };
+  async function hashPw(name, pw) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('cookie-salt:' + name + ':' + pw));
+    return [...new Uint8Array(buf)].map(x => x.toString(16).padStart(2, '0')).join('');
+  }
+  const freshG = () => ({
+    points: 0, owned: UPGRADES.map(() => 0), skins: ['classic'], skin: 'classic', unlocked: [],
+    muted: false, dark: false, frenzyUntil: 0, boosts: {}, chips: 0, rebirths: 0, bakedAtRebirth: 0,
+    stats: { clicks: 0, baked: 0, best: 0, time: 0, golden: 0 }
+  });
+  const cookieInner = () => CHIPS.map(([x, y, s]) => `<span class="chip" style="left:${x}%;top:${y}%;width:${s}%;height:${s}%"></span>`).join('');
+
+  // ---------- state ----------
+  let user = null, G = freshG(), tab = 'upgrades', buyMode = '1', panelOpen = false;
+  let adminAmt = '1000000', authMode = 'login';
+  let rushUntil = 0, sleepUntil = 0, lastClick = 0, combo = 0, confirmRb = false;
+  let lastSave = 0, ticks = 0, lastPanel = '', lastShelf = '';
+  let goldenTimer = null, goldenEl = null, eventTimer = null;
+
+  function derived() {
+    const now = Date.now();
+    let click = 1, sec = 0;
+    UPGRADES.forEach((u, i) => { const t = u.amount * G.owned[i]; if (u.kind === 'auto') sec += t; else click += t; });
+    const on = id => ((G.boosts || {})[id] || 0) > now;
+    const frenzy = G.frenzyUntil > now ? 7 : 1;
+    const clickBoost = (on('clickx2') ? 2 : 1) * (on('storm') ? 5 : 1) * (rushUntil > now ? 3 : 1);
+    const autoBoost = on('autox2') ? 2 : 1;
+    const allMult = (1 + G.unlocked.length * 0.04) * (1 + (G.chips || 0) * 0.1);
+    const sleeping = sleepUntil > now;
+    return {
+      click: click * frenzy * clickBoost * allMult,
+      sec: sleeping ? 0 : sec * frenzy * autoBoost * allMult,
+      rawSec: sec, on
+    };
+  }
+  const costFor = (i, n) => {
+    const r = 1 + GROWTH, base = UPGRADES[i].cost * Math.pow(r, G.owned[i]);
+    return Math.ceil(base * (Math.pow(r, n) - 1) / (r - 1));
+  };
+  const amountFor = i => {
+    if (buyMode === '10') return 10;
+    if (buyMode === '1') return 1;
+    let n = 0;
+    while (n < 1000 && costFor(i, n + 1) <= G.points) n++;
+    return Math.max(n, 1);
+  };
+  const comboMult = () => 1 + Math.floor(combo / 10) * 0.5;
+  const milkPct = () => Math.round(G.unlocked.length / ACH.length * 100);
+  const runBaked = () => Math.max(0, G.stats.baked - (G.bakedAtRebirth || 0));
+  const chipsOnRebirth = () => Math.floor(Math.sqrt(runBaked() / 1000000));
+
+  // ---------- sound ----------
+  let ac = null;
+  function ctx() {
+    if (G.muted) return null;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    if (!ac) ac = new AC();
+    return ac;
+  }
+  function tone(c, f, at, dur, vol) {
+    const o = c.createOscillator(), g = c.createGain();
+    o.frequency.value = f;
+    g.gain.setValueAtTime(vol, c.currentTime + at);
+    g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + at + dur);
+    o.connect(g).connect(c.destination);
+    o.start(c.currentTime + at); o.stop(c.currentTime + at + dur);
+  }
+  function sound(kind) {
+    const c = ctx(); if (!c) return;
+    if (kind === 'crunch') {
+      const len = Math.floor(c.sampleRate * 0.09), buf = c.createBuffer(1, len, c.sampleRate), d = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2);
+      const src = c.createBufferSource(); src.buffer = buf;
+      const f = c.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 1400 + Math.random() * 800; f.Q.value = 0.8;
+      const g = c.createGain(); g.gain.value = 0.5;
+      src.connect(f).connect(g).connect(c.destination); src.start();
+    } else if (kind === 'chime') {
+      tone(c, 880, 0, 0.25, 0.15); tone(c, 1320, 0.08, 0.3, 0.12);
+    } else {
+      [660, 880, 1100, 1320].forEach((f, i) => tone(c, f, i * 0.08, 0.35, 0.12));
+    }
+  }
+
+  // ---------- toasts ----------
+  function toast(title, text) {
+    const el = document.createElement('div');
+    el.className = 'toast';
+    el.innerHTML = '<b>' + esc(title) + '</b>' + (text ? '<span>' + esc(text) + '</span>' : '');
+    $('toasts').appendChild(el);
+    setTimeout(() => el.remove(), 3200);
+  }
+
+  // ---------- rendering ----------
+  function renderChips() {
+    const now = Date.now(), items = [];
+    BOOSTS.forEach(b => { const u = (G.boosts || {})[b.id] || 0; if (u > now) items.push({ key: b.id, label: b.name, until: u, cls: 'chip-boost' }); });
+    if (rushUntil > now) items.push({ key: 'rush', label: 'Sugar rush x3', until: rushUntil, cls: 'chip-boost' });
+    if (sleepUntil > now) items.push({ key: 'sleep', label: 'Grandma asleep', until: sleepUntil, cls: 'chip-sleep', wake: true });
+    const box = $('chips'), sig = items.map(i => i.key).join('|');
+    if (box.dataset.sig !== sig) {
+      box.dataset.sig = sig;
+      box.innerHTML = items.map(i => `<span class="${i.cls}" data-key="${i.key}">${esc(i.label)} <i></i>${i.wake ? ' <button class="wake" data-act="wake">Wake up</button>' : ''}</span>`).join('');
+    }
+    items.forEach(i => {
+      const el = box.querySelector('[data-key="' + i.key + '"] i');
+      if (el) el.textContent = Math.ceil((i.until - now) / 1000) + 's';
+    });
+  }
+  function renderTop() {
+    const d = derived(), now = Date.now();
+    document.body.classList.toggle('dark', !!(user && G.dark));
+    $('num').textContent = fmt(G.points);
+    $('rate').textContent = d.sec > 0 ? fmt(d.sec) + ' per second' : '';
+    const fl = G.frenzyUntil - now;
+    $('frenzy').hidden = fl <= 0;
+    $('frenzy').textContent = 'Frenzy x7: ' + Math.ceil(Math.max(0, fl) / 1000) + 's';
+    renderChips();
+    $('sound').classList.toggle('on', !G.muted);
+    $('sound').setAttribute('aria-checked', String(!G.muted));
+    $('soundText').textContent = G.muted ? 'Sound off' : 'Sound on';
+    $('dark').classList.toggle('on', !!G.dark);
+    $('dark').setAttribute('aria-checked', String(!!G.dark));
+    $('darkText').textContent = G.dark ? 'Dark' : 'Light';
+    $('userRow').hidden = !user;
+    $('userName').textContent = user || '';
+    $('adminTag').hidden = user !== ADMIN;
+    $('wrap').className = 'wrap' + (G.skin === 'classic' ? '' : ' skin-' + G.skin);
+    const pct = milkPct();
+    $('milk').hidden = !user; $('milkLabel').hidden = !user;
+    $('milk').style.height = (pct * 0.22) + '%';
+    $('milkLabel').textContent = 'Milk ' + pct + '% - +' + (G.unlocked.length * 4) + '% income';
+    const showCombo = !!user && combo >= 2;
+    $('combo').hidden = !showCombo;
+    if (showCombo) {
+      $('comboText').textContent = 'Combo ' + combo + ' - x' + comboMult();
+      $('comboFill').style.width = Math.min(100, combo) + '%';
+    }
+  }
+  function renderShelf() {
+    const rows = UPGRADES.map((u, i) => ({ u, n: G.owned[i] })).filter(x => x.n > 0);
+    const sig = rows.map(r => r.u.name + ':' + r.n).join('|');
+    if (sig === lastShelf) return;
+    lastShelf = sig;
+    let html = rows.length ? '<span class="shelf-title">Your bakery</span>' : '';
+    rows.forEach(({ u, n }) => {
+      const letter = esc(u.name.charAt(0).toUpperCase());
+      let toks = '';
+      for (let k = 0; k < Math.min(n, 12); k++) toks += `<span class="tok ${u.kind === 'auto' ? 'auto' : 'click'}" style="animation-delay:${k * 0.12}s">${letter}</span>`;
+      if (n > 12) toks += `<span class="more">+${fmt(n - 12)}</span>`;
+      html += `<div class="srow"><div class="shead"><span class="sname">${esc(u.name)}</span><span class="scount">x${fmt(n)}</span></div><div class="tokens">${toks}</div></div>`;
+    });
+    $('shelf').innerHTML = html;
+  }
+  function renderPanel(force) {
+    if (!panelOpen) return;
+    $('ppoints').textContent = fmt(G.points) + ' ' + LABEL;
+    const now = Date.now();
+    const tabs = [['upgrades', 'Upgrades'], ['boosts', 'Boosts'], ['skins', 'Skins'], ['achievements', 'Awards'], ['stats', 'Stats'], ['leaderboard', 'Top'], ['prestige', 'Rebirth']];
+    if (user === ADMIN) tabs.push(['admin', 'Admin']);
+    let h = '<div class="tabs">' + tabs.map(([v, l]) => `<button class="tab${tab === v ? ' active' : ''}" data-act="tab" data-v="${v}">${l}</button>`).join('') + '</div>';
+    h += '<div class="cards">';
+
+    if (tab === 'upgrades') {
+      h += '<div class="tabs small">' + [['1', 'Buy x1'], ['10', 'x10'], ['max', 'Max']].map(([v, l]) =>
+        `<button class="tab${buyMode === v ? ' active' : ''}" data-act="mode" data-v="${v}">${l}</button>`).join('') + '</div>';
+      UPGRADES.forEach((u, i) => {
+        const n = amountFor(i), p = costFor(i, n), ok = G.points >= p;
+        h += `<div class="ucard${ok ? ' ok' : ''}"><span class="badge">${G.owned[i]}</span>
+          <span class="ubody"><span class="uname">${esc(u.name)}${n > 1 ? ' x' + n : ''}</span><span class="udesc">${esc(u.description)}</span></span>
+          <button class="buy" data-act="buy" data-i="${i}" ${ok ? '' : 'disabled'}><span class="act">Buy</span><span class="price">${fmt(p)} ${LABEL}</span></button></div>`;
+      });
+    } else if (tab === 'boosts') {
+      BOOSTS.forEach(b => {
+        const until = (G.boosts || {})[b.id] || 0, active = until > now, ok = !active && G.points >= b.cost;
+        h += `<div class="ucard${ok ? ' ok' : ''}"><span class="ubody"><span class="uname">${esc(b.name)}</span><span class="udesc">${esc(b.description)} (${b.seconds}s)</span></span>
+          <button class="buy" data-act="boost" data-b="${b.id}" ${ok ? '' : 'disabled'}><span class="act">${active ? 'Active' : 'Activate'}</span><span class="price">${active ? Math.ceil((until - now) / 1000) + 's left' : fmt(b.cost) + ' ' + LABEL}</span></button></div>`;
+      });
+    } else if (tab === 'skins') {
+      SKINS.forEach(sk => {
+        const has = G.skins.includes(sk.id), on = G.skin === sk.id;
+        const label = on ? 'In use' : has ? 'Owned' : fmt(sk.cost) + ' ' + LABEL;
+        const act = on ? 'Equipped' : has ? 'Equip' : 'Buy';
+        const ok = !on && (has || G.points >= sk.cost);
+        h += `<div class="skin-row"><div class="wrap mini${sk.id === 'classic' ? '' : ' skin-' + sk.id}"><button class="cookie" tabindex="-1" aria-hidden="true">${cookieInner()}</button></div>
+          <div class="ucard${ok ? ' ok' : ''}"><span class="ubody"><span class="uname">${esc(sk.name)}</span><span class="udesc">${esc(sk.description)}</span></span>
+          <button class="buy" data-act="skin" data-s="${sk.id}" ${ok ? '' : 'disabled'}><span class="act">${act}</span><span class="price">${label}</span></button></div></div>`;
+      });
+    } else if (tab === 'achievements') {
+      ACH.forEach(a => {
+        const got = G.unlocked.includes(a.id);
+        h += `<div class="award${got ? ' on' : ''}"><span class="aicon">${got ? '&#9733;' : '?'}</span><span class="abody"><span class="aname">${got ? esc(a.name) : 'Locked'}</span><span class="atext">${esc(a.text)}</span></span></div>`;
+      });
+    } else if (tab === 'stats') {
+      const d = derived();
+      const rows = [
+        ['Points now', fmt(G.points)], ['Total baked', fmt(G.stats.baked)], ['Cookie clicks', fmt(G.stats.clicks)],
+        ['Points per click', fmt(d.click)], ['Points per second', fmt(d.sec)], ['Best per second', fmt(G.stats.best)],
+        ['Upgrades owned', fmt(G.owned.reduce((a, b) => a + b, 0))], ['Golden cookies caught', fmt(G.stats.golden)],
+        ['Achievements', G.unlocked.length + ' / ' + ACH.length], ['Milk', milkPct() + '% (+' + (G.unlocked.length * 4) + '% income)'],
+        ['Heavenly chips', fmt(G.chips || 0)], ['Rebirths', fmt(G.rebirths || 0)], ['Time played', fmtTime(G.stats.time)]
+      ];
+      h += '<dl class="stats">' + rows.map(([k, v]) => `<div class="srow2"><dt>${k}</dt><dd>${v}</dd></div>`).join('') + '</dl>';
+    } else if (tab === 'leaderboard') {
+      const users = readUsers();
+      const rows = Object.keys(users).map(n => ({ n, pts: n === user ? G.points : ((users[n].save && users[n].save.points) || 0) }));
+      if (user && !users[user]) rows.push({ n: user, pts: G.points });
+      rows.sort((a, b) => b.pts - a.pts);
+      h += '<div class="board"><span class="ahead">Most points on this browser</span>';
+      rows.slice(0, 20).forEach((r, i) => {
+        h += `<div class="brow${r.n === user ? ' me' : ''}${i < 3 ? ' r' + (i + 1) : ''}"><span class="brank">${i + 1}</span><span class="bname">${esc(r.n)}${r.n === ADMIN ? '<span class="adminTag">ADMIN</span>' : ''}</span><span class="bpts">${fmt(r.pts)}</span></div>`;
+      });
+      h += '</div>';
+    } else if (tab === 'prestige') {
+      const ch = chipsOnRebirth(), rb = runBaked();
+      h += `<div class="box"><span class="big">${fmt(G.chips || 0)}</span><span>chips: +${fmt((G.chips || 0) * 10)}% to all income. Rebirths: ${G.rebirths || 0}</span></div>
+        <span class="note">Rebirth resets your points, upgrades and boosts. You keep skins, achievements, stats and chips. Each chip adds 10% to all income forever.</span>
+        <span class="gain">Rebirth now for +${fmt(ch)} chips</span>`;
+      if (ch < 1) h += `<span class="note">Bake 1,000,000 points in this run to earn your first chip (${fmt(rb)} so far)</span>`;
+      h += `<button class="btn primary" data-act="rebirth" ${ch < 1 ? 'disabled' : ''}>${confirmRb ? 'Click again to confirm' : 'Rebirth'}</button>`;
+    } else if (tab === 'admin' && user === ADMIN) {
+      const users = readUsers();
+      const others = Object.keys(users).filter(n => n !== ADMIN);
+      h += `<div class="ahead">Points</div>
+        <input class="amt" id="adminAmt" value="${esc(adminAmt)}" inputmode="numeric">
+        <div class="abtns"><button class="btn primary" data-act="admin-add">Add points</button><button class="btn" data-act="admin-set">Set points</button></div>
+        <div class="ahead">Game</div>
+        <div class="abtns">
+          <button class="btn blue" data-act="admin-10">+10 every upgrade</button>
+          <button class="btn blue" data-act="admin-skins">Unlock all skins</button>
+          <button class="btn blue" data-act="admin-awards">Unlock all awards</button>
+          <button class="btn blue" data-act="admin-golden">Spawn golden cookie</button>
+          <button class="btn blue" data-act="admin-frenzy">Start frenzy</button>
+          <button class="btn blue" data-act="admin-event">Random event</button>
+          <button class="btn" data-act="admin-reset">Reset my progress</button>
+        </div>
+        <div class="ahead">Players on this browser</div>
+        ${others.length ? '' : '<span class="empty">No other players yet</span>'}
+        ${others.map(n => `<div class="prow"><span class="pname">${esc(n)}<span class="ppts">${fmt((users[n].save && users[n].save.points) || 0)} ${LABEL}</span></span>
+          <button class="pbtn" data-act="reset-user" data-u="${esc(n)}">Reset</button>
+          <button class="pbtn danger" data-act="del-user" data-u="${esc(n)}">Delete</button></div>`).join('')}`;
+    }
+    h += '</div>';
+    if (force || h !== lastPanel) { $('panelBody').innerHTML = h; lastPanel = h; }
+  }
+  function renderAll(force) { renderTop(); renderShelf(); renderPanel(force); }
+
+  // ---------- saving ----------
+  function save() {
+    if (!user) return;
+    const db = readUsers();
+    if (!db[user]) return;
+    db[user].save = G;
+    writeUsers(db);
+    lastSave = Date.now();
+  }
+
+  // ---------- actions ----------
+  function buy(i) {
+    const n = amountFor(i), p = costFor(i, n);
+    if (G.points < p) return;
+    G.points -= p; G.owned[i] += n;
+    sound('chime');
+  }
+  function buyBoost(id) {
+    const b = BOOSTS.find(x => x.id === id);
+    if (!b) return;
+    const until = (G.boosts || {})[id] || 0;
+    if (until > Date.now() || G.points < b.cost) return;
+    G.points -= b.cost;
+    G.boosts = { ...(G.boosts || {}), [id]: Date.now() + b.seconds * 1000 };
+    sound('chime');
+    toast(b.name + ' is on!', b.description + ' for ' + b.seconds + 's');
+  }
+  function pickSkin(id) {
+    const sk = SKINS.find(s => s.id === id);
+    if (!sk) return;
+    if (G.skins.includes(id)) { G.skin = id; return; }
+    if (G.points < sk.cost) return;
+    G.points -= sk.cost;
+    G.skins.push(id); G.skin = id;
+    sound('chime');
+  }
+  function rebirth() {
+    const earned = chipsOnRebirth();
+    if (earned < 1) return;
+    const kept = { skins: G.skins, skin: G.skin, unlocked: G.unlocked, muted: G.muted, dark: G.dark,
+      stats: G.stats, chips: (G.chips || 0) + earned, rebirths: (G.rebirths || 0) + 1 };
+    const bakedNow = G.stats.baked;
+    G = Object.assign(freshG(), kept, { bakedAtRebirth: bakedNow });
+    confirmRb = false; rushUntil = 0; sleepUntil = 0; combo = 0;
+    sound('fanfare');
+    toast('Reborn!', '+' + earned + ' heavenly chips: +' + earned * 10 + '% income forever');
+    togglePanel(false);
+  }
+
+  // cookie click
+  function burst(text) {
+    const wrap = $('wrap');
+    for (let i = 0; i < 10; i++) {
+      const a = (i / 10) * Math.PI * 2 + Math.random() * 0.5;
+      const d = 90 + Math.random() * 80;
+      const dx = Math.cos(a) * d, dy = Math.sin(a) * d - 20;
+      const s = 6 + Math.random() * 8, r = Math.random() * 360;
+      const c = document.createElement('span');
+      c.className = 'crumb';
+      c.style.width = c.style.height = s + 'px';
+      c.style.margin = (-s / 2) + 'px 0 0 ' + (-s / 2) + 'px';
+      wrap.appendChild(c);
+      const an = c.animate([
+        { transform: 'translate(0,0) rotate(0deg) scale(1)', opacity: 1 },
+        { transform: `translate(${dx}px, ${dy + 50}px) rotate(${r}deg) scale(.4)`, opacity: 0 }
+      ], { duration: 800, easing: 'ease-out', fill: 'forwards' });
+      an.onfinish = () => c.remove();
+    }
+    const p = document.createElement('span');
+    p.className = 'plus';
+    p.textContent = text;
+    wrap.appendChild(p);
+    const pa = p.animate([
+      { transform: 'translate(-50%, 0) scale(.6)', opacity: 1 },
+      { transform: 'translate(-50%, -120px) scale(1.3)', opacity: 0 }
+    ], { duration: 800, easing: 'ease-out', fill: 'forwards' });
+    pa.onfinish = () => p.remove();
+  }
+  function clickCookie() {
+    if (!user) return;
+    const now = Date.now();
+    combo = now - lastClick < 500 ? Math.min(combo + 1, 100) : 1;
+    lastClick = now;
+    const gain = derived().click * comboMult();
+    sound('crunch');
+    G.points += gain; G.stats.clicks++; G.stats.baked += gain;
+    $('cookie').animate([
+      { transform: 'scale(1) rotate(0deg)' },
+      { transform: 'scaleX(1.18) scaleY(0.72) rotate(-14deg)', offset: 0.2 },
+      { transform: 'scaleX(0.96) scaleY(1.06) rotate(7deg)', offset: 0.5 },
+      { transform: 'scaleX(1.03) scaleY(0.98) rotate(-3deg)', offset: 0.75 },
+      { transform: 'scale(1) rotate(0deg)' }
+    ], { duration: 550, easing: 'ease-out' });
+    burst('+' + fmt(gain));
+    renderAll(false);
+    save();
+  }
+
+  // cookie rain
+  function catchRain(el) {
+    if (!el.isConnected) return;
+    el.remove();
+    const bonus = Math.max(derived().click * 20, 50);
+    sound('crunch');
+    G.points += bonus; G.stats.baked += bonus;
+    renderAll(false); save();
+  }
+  function spawnRain() {
+    const travel = innerHeight + 120;
+    for (let i = 0; i < 10; i++) {
+      const el = document.createElement('div');
+      el.className = 'rain';
+      el.style.left = (5 + Math.random() * 88) + '%';
+      el.addEventListener('click', () => catchRain(el));
+      document.body.appendChild(el);
+      const an = el.animate([{ transform: 'translateY(0)' }, { transform: 'translateY(' + travel + 'px)' }],
+        { duration: 3500 + Math.random() * 2000, delay: i * 500, fill: 'forwards', easing: 'linear' });
+      an.onfinish = () => el.remove();
+    }
+  }
+
+  // random events
+  function triggerEvent(kind) {
+    const kinds = ['rain', 'rush'].concat(derived().rawSec > 0 ? ['sleep'] : []);
+    const k = kind || kinds[Math.floor(Math.random() * kinds.length)];
+    if (k === 'rain') { spawnRain(); toast('Cookie rain!', 'Catch the falling cookies'); }
+    else if (k === 'rush') { rushUntil = Date.now() + 15000; toast('Sugar rush!', 'Clicks give x3 for 15 seconds'); }
+    else { sleepUntil = Date.now() + 15000; toast('Grandma fell asleep', 'Auto income paused for 15 seconds'); }
+    sound('fanfare');
+  }
+  function scheduleEvent() {
+    clearTimeout(eventTimer);
+    eventTimer = setTimeout(() => { if (user) triggerEvent(); scheduleEvent(); }, 45000 + Math.random() * 75000);
+  }
+
+  // golden cookie
+  function scheduleGolden() {
+    clearTimeout(goldenTimer);
+    goldenTimer = setTimeout(spawnGolden, 30000 + Math.random() * 60000);
+  }
+  function spawnGolden() {
+    if (!user || goldenEl) { scheduleGolden(); return; }
+    const el = document.createElement('div');
+    el.className = 'wrap golden skin-golden';
+    el.style.left = (8 + Math.random() * 74) + '%';
+    el.style.top = (18 + Math.random() * 60) + '%';
+    el.innerHTML = '<button class="cookie" aria-label="Golden cookie">' + cookieInner() + '</button>';
+    el.querySelector('.cookie').addEventListener('click', catchGolden);
+    document.body.appendChild(el);
+    goldenEl = el;
+    setTimeout(() => { if (goldenEl === el) { el.remove(); goldenEl = null; scheduleGolden(); } }, 10000);
+  }
+  function catchGolden() {
+    if (goldenEl) { goldenEl.remove(); goldenEl = null; }
+    scheduleGolden();
+    sound('fanfare');
+    G.stats.golden++;
+    if (Math.random() < 0.5) {
+      G.frenzyUntil = Date.now() + 30000;
+      toast('Frenzy!', 'All points x7 for 30 seconds');
+    } else {
+      const d = derived();
+      const bonus = Math.max(d.sec * 60, d.click * 50, 100);
+      G.points += bonus; G.stats.baked += bonus;
+      toast('Lucky!', '+' + fmt(bonus) + ' ' + LABEL);
+    }
+    renderAll(false); save();
+  }
+
+  // achievements
+  function checkAch(d) {
+    const h = { perSec: d.sec, has: name => UPGRADES.some((u, i) => u.name === name && G.owned[i] > 0) };
+    const got = ACH.filter(a => !G.unlocked.includes(a.id) && a.test(G, h));
+    if (!got.length) return;
+    got.forEach(a => G.unlocked.push(a.id));
+    got.slice(0, 3).forEach(a => toast('Achievement unlocked: ' + a.name, a.text));
+    sound('fanfare');
+  }
+
+  // main loop: passive income 10 times per second
+  setInterval(() => {
+    if (!user) return;
+    ticks++;
+    const now = Date.now(), d = derived();
+    const gain = d.sec / 10;
+    G.points += gain; G.stats.baked += gain; G.stats.time += 0.1;
+    G.stats.best = Math.max(G.stats.best, d.sec);
+    if (combo > 0 && now - lastClick > 900) combo = 0;
+    checkAch(d);
+    renderTop();
+    if (panelOpen && tab !== 'admin' && ticks % 5 === 0) renderPanel(false);
+    if (now - lastSave > 1000) save();
+  }, 100);
+
+  // ---------- panel ----------
+  function togglePanel(open) {
+    panelOpen = open;
+    if (!open) confirmRb = false;
+    $('panel').classList.toggle('open', open);
+    $('veil').classList.toggle('open', open);
+    if (open) renderPanel(true);
+  }
+  function openPanel(t) {
+    tab = t; confirmRb = false;
+    togglePanel(true);
+    renderPanel(true);
+  }
+
+  // ---------- admin actions ----------
+  function parseAmt() {
+    const v = Number(String(adminAmt).replace(/[,\s_]/g, ''));
+    return isFinite(v) && v >= 0 ? v : 0;
+  }
+  function adminAction(act) {
+    if (user !== ADMIN) return;
+    if (act === 'admin-add') { const a = parseAmt(); G.points += a; G.stats.baked += a; }
+    else if (act === 'admin-set') { G.points = parseAmt(); }
+    else if (act === 'admin-10') { G.owned = G.owned.map(n => n + 10); }
+    else if (act === 'admin-skins') { SKINS.forEach(s => { if (!G.skins.includes(s.id)) G.skins.push(s.id); }); }
+    else if (act === 'admin-awards') { ACH.forEach(a => { if (!G.unlocked.includes(a.id)) G.unlocked.push(a.id); }); }
+    else if (act === 'admin-golden') { if (goldenEl) { goldenEl.remove(); goldenEl = null; } spawnGolden(); }
+    else if (act === 'admin-frenzy') { G.frenzyUntil = Date.now() + 30000; toast('Frenzy!', 'All points x7 for 30 seconds'); }
+    else if (act === 'admin-event') { triggerEvent(); }
+    else if (act === 'admin-reset') {
+      const keepMuted = G.muted, keepDark = G.dark;
+      G = freshG(); G.muted = keepMuted; G.dark = keepDark;
+      rushUntil = 0; sleepUntil = 0; combo = 0;
+    }
+    renderAll(true); save();
+  }
+
+  // ---------- auth ----------
+  function setAuthMode(m) {
+    authMode = m;
+    $('authTitle').textContent = m === 'login' ? 'Welcome back' : 'Create account';
+    $('aGo').textContent = m === 'login' ? 'Log in' : 'Sign up';
+    $('aPw2Wrap').hidden = m === 'login';
+    $('aPw').autocomplete = m === 'login' ? 'current-password' : 'new-password';
+    $('aErr').textContent = '';
+    document.querySelectorAll('#authTabs .tab').forEach(b => b.classList.toggle('active', b.dataset.mode === m));
+  }
+  function startSession(name) {
+    user = name;
+    try { localStorage.setItem(KEY_SESSION, name); } catch (e) {}
+    const db = readUsers();
+    const s = (db[name] && db[name].save) || {};
+    const f = freshG();
+    G = Object.assign(f, s);
+    G.stats = Object.assign(f.stats, s.stats || {});
+    G.owned = UPGRADES.map((_, i) => Number((s.owned || [])[i]) || 0);
+    G.skins = Array.isArray(s.skins) && s.skins.length ? s.skins : ['classic'];
+    G.unlocked = Array.isArray(s.unlocked) ? s.unlocked : [];
+    G.boosts = s.boosts || {};
+    rushUntil = 0; sleepUntil = 0; combo = 0; lastShelf = ''; lastPanel = '';
+    $('auth').hidden = true;
+    $('aPw').value = ''; $('aPw2').value = ''; $('aErr').textContent = '';
+    if (goldenEl) { goldenEl.remove(); goldenEl = null; }
+    scheduleGolden(); scheduleEvent();
+    renderAll(true);
+  }
+  function endSession() {
+    save();
+    user = null;
+    try { localStorage.removeItem(KEY_SESSION); } catch (e) {}
+    togglePanel(false);
+    clearTimeout(goldenTimer); clearTimeout(eventTimer);
+    if (goldenEl) { goldenEl.remove(); goldenEl = null; }
+    document.querySelectorAll('.rain').forEach(e => e.remove());
+    G = freshG(); combo = 0; lastShelf = '';
+    $('auth').hidden = false;
+    setAuthMode('login');
+    renderAll(true);
+  }
+  async function submitAuth() {
+    const name = $('aUser').value.trim(), pw = $('aPw').value, pw2 = $('aPw2').value;
+    const err = m => { $('aErr').textContent = m; };
+    if (!/^[A-Za-z0-9_]{3,20}$/.test(name)) return err('Username: 3-20 letters, numbers or _');
+    if (pw.length < 4) return err('Password must be at least 4 characters');
+    const db = readUsers();
+    const hash = await hashPw(name, pw);
+    if (authMode === 'signup') {
+      if (pw !== pw2) return err('Passwords do not match');
+      if (db[name]) return err('That username is taken');
+      if (name.toLowerCase() === ADMIN.toLowerCase() && (name !== ADMIN || hash !== ADMIN_HASH)) return err('That username is reserved');
+      db[name] = { hash, save: null };
+      writeUsers(db);
+      startSession(name);
+    } else {
+      if (name === ADMIN && hash === ADMIN_HASH) {
+        if (!db[name]) { db[name] = { hash, save: null }; writeUsers(db); }
+        return startSession(name);
+      }
+      if (!db[name] || db[name].hash !== hash) return err('Wrong username or password');
+      startSession(name);
+    }
+  }
+
+  // ---------- wiring ----------
+  $('cookie').innerHTML = cookieInner();
+  $('cookie').addEventListener('click', clickCookie);
+  $('shopBtn').addEventListener('click', () => { if (user) openPanel('upgrades'); });
+  $('boardBtn').addEventListener('click', () => { if (user) openPanel('leaderboard'); });
+  $('closePanel').addEventListener('click', () => togglePanel(false));
+  $('veil').addEventListener('click', () => togglePanel(false));
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && panelOpen) togglePanel(false); });
+  $('sound').addEventListener('click', () => { G.muted = !G.muted; renderTop(); save(); });
+  $('dark').addEventListener('click', () => { G.dark = !G.dark; renderTop(); save(); });
+  $('logout').addEventListener('click', endSession);
+  $('authTabs').addEventListener('click', e => { const b = e.target.closest('[data-mode]'); if (b) setAuthMode(b.dataset.mode); });
+  $('aGo').addEventListener('click', submitAuth);
+  ['aUser', 'aPw', 'aPw2'].forEach(id => $(id).addEventListener('keydown', e => { if (e.key === 'Enter') submitAuth(); }));
+
+  $('chips').addEventListener('click', e => {
+    if (e.target.closest('[data-act="wake"]')) { sleepUntil = 0; renderTop(); }
+  });
+  $('panelBody').addEventListener('input', e => {
+    if (e.target.id === 'adminAmt') adminAmt = e.target.value;
+  });
+  $('panelBody').addEventListener('click', e => {
+    const el = e.target.closest('[data-act]');
+    if (!el || el.disabled) return;
+    const act = el.dataset.act;
+    if (act === 'tab') { tab = el.dataset.v; confirmRb = false; }
+    else if (act === 'mode') { buyMode = el.dataset.v; }
+    else if (act === 'buy') { buy(Number(el.dataset.i)); }
+    else if (act === 'boost') { buyBoost(el.dataset.b); }
+    else if (act === 'skin') { pickSkin(el.dataset.s); }
+    else if (act === 'rebirth') {
+      if (!confirmRb) { confirmRb = true; renderPanel(true); return; }
+      rebirth(); renderAll(true); save(); return;
+    }
+    else if (act === 'reset-user' || act === 'del-user') {
+      if (user !== ADMIN) return;
+      const n = el.dataset.u, db = readUsers();
+      if (db[n]) {
+        if (act === 'del-user') delete db[n]; else db[n].save = null;
+        writeUsers(db);
+      }
+    }
+    else if (act.indexOf('admin-') === 0) { adminAction(act); return; }
+    renderAll(true); save();
+  });
+
+  // ---------- boot ----------
+  window.addEventListener('beforeunload', save);
+  let remembered = null;
+  try { remembered = localStorage.getItem(KEY_SESSION); } catch (e) {}
+  const db0 = readUsers();
+  if (remembered && (db0[remembered] || remembered === ADMIN)) startSession(remembered);
+  else { setAuthMode('login'); renderAll(true); }
+})();
+</script>
+</body>
+</html>
